@@ -7,7 +7,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-
+import { CostEstimateDto } from 'dtos/estimate.dto';
 
 @Controller()
 export class AppController {
@@ -47,5 +47,32 @@ export class AppController {
       myaccount,
     );
     return historicalfunctions;
+  }
+
+  @Post('/estimatecost')
+  @ApiOperation({
+    summary: 'Get estimated function execution cost in USD',
+    description: 'Get estimated function execution cost in USD',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sucessfully get estimation fees from consumer contract',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'no estimation fees found matching the query',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  // passing secrets is insecure
+  async estimationCost(@Body() costEstimateDto: CostEstimateDto): Promise<string> {
+    const estimatedCost = await this.appService.estimateCost(
+      costEstimateDto.source,
+      costEstimateDto.args,
+      costEstimateDto.secrets
+    );
+    return estimatedCost;
   }
 }
