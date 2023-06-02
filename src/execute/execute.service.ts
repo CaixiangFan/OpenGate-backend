@@ -40,7 +40,7 @@ function spin(config = {}) {
 
 @Injectable()
 export class ExecuteService {
-  private response = 'default';
+  private response = '0x';
 
   async executeRequest(source: string, args: [string], secrets: Object): Promise<String> {
     const network = {
@@ -83,7 +83,6 @@ export class ExecuteService {
     const subscriptionId = process.env.SUB_ID ?? 655;
     const gasLimit = 100000;
   
-    console.log({contractAddr});  
     const clientContract = new ethers.Contract(contractAddr, DONconsumerABI.abi, signer);
   
     const functionsOracleProxy = process.env.FUNC_ORACLE_PROXY ?? "";
@@ -135,9 +134,27 @@ export class ExecuteService {
     await new Promise(async (resolve, reject) => {
       let requestId
 
+      let cleanupInProgress = false
+      let doGistCleanup = true
+      const cleanup = async () => {
+        spinner.stop()
+        if (doGistCleanup) {
+          if (!cleanupInProgress) {
+            cleanupInProgress = true
+            const success = true
+            if (success) {
+              console.log("Success!")
+            }
+            return resolve("success")
+          }
+          return
+        }
+        return resolve("success")
+      }
+
       let billingEndEventReceived = false
       let ocrResponseEventReceived = false
-      clientContract.on("OCRResponse", async (eventRequestId, result, err) => {
+      clientContract.once("OCRResponse", async (eventRequestId, result, err) => {
         // Ensure the fulfilled requestId matches the initiated requestId to prevent logging a response for an unrelated requestId
         if (eventRequestId !== requestId) {
           return
@@ -145,14 +162,10 @@ export class ExecuteService {
   
         spinner.succeed(`Request ${requestId} fulfilled! Data has been written on-chain.\n`)
         if (result !== "0x") {
-          // console.log(
-          //   `Response returned to client contract represented as a hex string: ${result}\n${getDecodedResultLog(
-          //     require("../../Functions-request-config"),
-          //     result
-          //   )}`
-          // )
+          console.log(
+            `Response returned to client contract represented as a hex string: ${result}}`
+          )
           this.response = result;
-          console.log({result});
         }
         if (err !== "0x") {
           console.log({err});
@@ -161,12 +174,12 @@ export class ExecuteService {
         ocrResponseEventReceived = true
         // await store.update(requestId, { status: "complete", result })
   
-        // if (billingEndEventReceived) {
-        //   await cleanup()
-        // }
+        if (billingEndEventReceived) {
+          await cleanup()
+        }
       })
       // Listen for the BillingEnd event, log cost breakdown & resolve
-      registry.on(
+      registry.once(
         "BillingEnd",
         async (
           eventRequestId,
@@ -194,7 +207,7 @@ export class ExecuteService {
             // Check for a successful request
             billingEndEventReceived = true
             if (ocrResponseEventReceived) {
-              // await cleanup()
+              await cleanup()
             }
           }
         }
@@ -214,9 +227,10 @@ export class ExecuteService {
       const requestTxReceipt = await requestTx.wait(2);
 
       requestId = requestTxReceipt.events[2].args.id
-      // return resolve();
     })
     
-    return requestConfig.source;
+    return this.response;
   }
+
+
 }
