@@ -41,8 +41,9 @@ function spin(config = {}) {
 @Injectable()
 export class ExecuteService {
   private response = '0x';
+  private txHash = '0x';
 
-  async executeRequest(source: string, args: [string], secrets: Object): Promise<String> {
+  async executeRequest(source: string, args: [string], secrets: Object): Promise<Object> {
     const network = {
       name: "polygonMumbai",
       url: process.env.MUMBAI_RPC_URL ?? "UNSET",
@@ -227,10 +228,9 @@ export class ExecuteService {
       const requestTxReceipt = await requestTx.wait(2);
 
       requestId = requestTxReceipt.events[2].args.id
+      this.txHash = requestTx.hash;
     })
     
-    return this.response;
+    return {data: this.response, txHash: this.txHash};
   }
-
-
 }

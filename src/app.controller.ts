@@ -94,12 +94,12 @@ export class AppController {
     status: 500,
     description: 'Internal server error',
   })
-  async executeRequest(@Body() executeRequestDto: CostEstimateDto): Promise<String> {
-    const response = await this.executeService.executeRequest(
+  async executeRequest(@Body() executeRequestDto: CostEstimateDto): Promise<Object> {
+    const responseObj = await this.executeService.executeRequest(
       executeRequestDto.source,
       executeRequestDto.args,
       executeRequestDto.secrets
     );
-    return response;
+    return responseObj;
   }
 }
