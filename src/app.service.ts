@@ -29,7 +29,7 @@ export class AppService {
   }
 
   // Chainlink function contract operations
-  async estimateCost(source: string, args: [string], secrets: Object): Promise<string> {
+  async estimateCost(source: string, args: [string], secrets: Object): Promise<number> {
     const provider = new ethers.providers.JsonRpcProvider(process.env.MUMBAI_RPC_URL);
     const requestConfig = {
       // source: fs.readFileSync("./calculation-example.js").toString(),
@@ -46,6 +46,7 @@ export class AppService {
     const consumerContract = new ethers.Contract(DONconsumerAddress, DONconsumerABI.abi, provider);
     const simulatedSecretsURLBytes = `0x${Buffer.from(process.env.BUFFER_URL ?? "").toString("hex")}`;
   
+    // cost with 8 decimals precision; actual value in USD should be devided by 1e8
     const estimatedCost = await consumerContract.getCostEstimate(
       requestConfig.source,
       requestConfig.secrets && Object.keys(requestConfig.secrets).length > 0 ? simulatedSecretsURLBytes : [],
@@ -54,7 +55,6 @@ export class AppService {
       requestConfig.gasLimit,
       requestConfig.gasPrice
     );
-    console.log(ethers.utils.formatEther(estimatedCost));
-    return ethers.utils.formatEther(estimatedCost);
+    return estimatedCost.toNumber()/1e8;
   }
 }

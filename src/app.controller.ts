@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ExecuteService } from './execute/execute.service';
 import {
   ApiOperation,
   ApiResponse,
@@ -11,7 +12,7 @@ import { CostEstimateDto } from 'dtos/estimate.dto';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService, private readonly executeService: ExecuteService) {}
 
   @Get()
   getHello(): string {
@@ -55,7 +56,7 @@ export class AppController {
     description: 'Get estimated function execution cost in USD',
   })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: 'Sucessfully get estimation fees from consumer contract',
   })
   @ApiResponse({
@@ -67,12 +68,38 @@ export class AppController {
     description: 'Internal server error',
   })
   // passing secrets is insecure
-  async estimationCost(@Body() costEstimateDto: CostEstimateDto): Promise<string> {
+  async estimationCost(@Body() costEstimateDto: CostEstimateDto): Promise<number> {
     const estimatedCost = await this.appService.estimateCost(
       costEstimateDto.source,
       costEstimateDto.args,
       costEstimateDto.secrets
     );
     return estimatedCost;
+  }
+
+  @Post('/executerequest')
+  @ApiOperation({
+    summary: 'Request to execute function with provided parameters',
+    description: 'Request to execute function with provided parameters and return execution results',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Sucessfully executed function and get results',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'no execution function found matching the query',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  async executeRequest(@Body() executeRequestDto: CostEstimateDto): Promise<String> {
+    const response = await this.executeService.executeRequest(
+      executeRequestDto.source,
+      executeRequestDto.args,
+      executeRequestDto.secrets
+    );
+    return response;
   }
 }
